@@ -242,7 +242,10 @@ export function usePlayers() {
 
       if (selectError) throw selectError
 
-      const { error } = await supabase.from('jugadores').delete().neq('id', '')
+      const { error } = await supabase
+  .from("jugadores")
+  .delete()
+  .not("id", "is", null)
       if (error) throw error
 
       setPlayers([])
