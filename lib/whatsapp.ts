@@ -9,7 +9,7 @@ export function buildAdminWhatsAppUrl(players: Player[]): string {
   const blackTeam = players.filter(player => player.team === 'Negro')
 
   const lines = [
-    '⚽ *RESUMEN DE ASISTENCIA - FÚTBOL 7* ⚽',
+    '⚽ RESUMEN DE ASISTENCIA AL PARTIDO ⚽',
     '',
     `👥 *Total de jugadores:* ${total}`,
     `🏳️ *Equipo Blanco:* ${whiteTeam.length}`,
@@ -18,8 +18,6 @@ export function buildAdminWhatsAppUrl(players: Player[]): string {
     '📝 *Jugadores registrados:*',
     '',
     ...players.map(player => `• ${player.fullName} (${player.team})`),
-    '',
-    '📅 Enviado desde la app de organización de partidos',
   ]
 
   return `https://wa.me/${ORGANIZER_PHONE}?text=${encodeURIComponent(lines.join('\n'))}`

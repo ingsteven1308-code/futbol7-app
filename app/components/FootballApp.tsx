@@ -141,14 +141,11 @@ export function FootballApp() {
         <div className="relative max-w-6xl mx-auto px-4 py-10 text-center">
           <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-4 py-1.5 mb-4">
             <span className="text-yellow-400 text-xs font-bold tracking-widest uppercase">
-              Organiza tu partido
+              Organiza tu partidooooooo
             </span>
           </div>
           <h1 className="text-5xl sm:text-6xl font-black uppercase tracking-tight">
             <span className="text-white">FÚTBOL</span>{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">
-              7
-            </span>
           </h1>
           <p className="text-gray-500 mt-2 text-sm">
             Registra jugadores · Forma equipos · Juega
@@ -231,7 +228,7 @@ export function FootballApp() {
 
       {/* Footer */}
       <footer className="border-t border-gray-900 text-center py-6 text-gray-700 text-xs">
-        Fútbol 7 App · Hecho con ⚽ y Next.js + Supabase
+         App Oficial De Partidos ⚽ Diseñada y Desarrollada Por El Ingeniero Steven Trujillo
       </footer>
     </div>
   )
