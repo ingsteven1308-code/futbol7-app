@@ -4,28 +4,31 @@ export type Database = {
       jugadores: {
         Row: {
           id: string
-          full_name: string
-          document_id: string
-          position: 'Arquero' | 'Defensa' | 'Mediocampista' | 'Delantero'
-          team: 'Blanco' | 'Negro'
+          nombre: string
+          documento: string
+          posicion: 'Arquero' | 'Defensa' | 'Mediocampista' | 'Delantero'
+          equipo: 'Blanco' | 'Negro'
+          foto: string | null
           photo_url: string | null
           created_at: string
         }
         Insert: {
           id?: string
-          full_name: string
-          document_id: string
-          position: 'Arquero' | 'Defensa' | 'Mediocampista' | 'Delantero'
-          team: 'Blanco' | 'Negro'
+          nombre: string
+          documento: string
+          posicion: 'Arquero' | 'Defensa' | 'Mediocampista' | 'Delantero'
+          equipo: 'Blanco' | 'Negro'
+          foto?: string | null
           photo_url?: string | null
           created_at: string
         }
         Update: {
           id?: string
-          full_name?: string
-          document_id?: string
-          position?: 'Arquero' | 'Defensa' | 'Mediocampista' | 'Delantero'
-          team?: 'Blanco' | 'Negro'
+          nombre?: string
+          documento?: string
+          posicion?: 'Arquero' | 'Defensa' | 'Mediocampista' | 'Delantero'
+          equipo?: 'Blanco' | 'Negro'
+          foto?: string | null
           photo_url?: string | null
           created_at?: string
         }

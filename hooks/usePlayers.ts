@@ -15,11 +15,11 @@ export function usePlayers() {
   // Transformar datos de Supabase a formato local
   const transformPlayer = (dbPlayer: any): Player => ({
     id: dbPlayer.id,
-    fullName: dbPlayer.full_name,
-    documentNumber: dbPlayer.document_id,
-    position: dbPlayer.position,
-    team: dbPlayer.team,
-    photoUrl: dbPlayer.photo_url ?? null,
+    fullName: dbPlayer.nombre,
+    documentNumber: dbPlayer.documento,
+    position: dbPlayer.posicion,
+    team: dbPlayer.equipo,
+    photoUrl: dbPlayer.photo_url ?? dbPlayer.foto ?? null,
     createdAt: dbPlayer.created_at,
   })
 
@@ -123,10 +123,10 @@ export function usePlayers() {
 
         const newPlayerInsert = {
           id,
-          full_name: playerData.fullName,
-          document_id: playerData.documentNumber,
-          position: playerData.position,
-          team: playerData.team,
+          nombre: playerData.fullName,
+          documento: playerData.documentNumber,
+          posicion: playerData.position,
+          equipo: playerData.team,
           photo_url: photoUrl,
           created_at: new Date().toISOString(),
         }
@@ -173,10 +173,10 @@ export function usePlayers() {
         const { error } = await supabase
           .from('jugadores')
           .update({
-            full_name: player.fullName,
-            document_id: player.documentNumber,
-            position: player.position,
-            team: player.team,
+            nombre: player.fullName,
+            documento: player.documentNumber,
+            posicion: player.position,
+            equipo: player.team,
             photo_url: photoUrl,
           })
           .eq('id', player.id)
