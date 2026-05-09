@@ -1,7 +1,7 @@
 export type Database = {
   public: {
     Tables: {
-      players: {
+      jugadores: {
         Row: {
           id: string
           full_name: string

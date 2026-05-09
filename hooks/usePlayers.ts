@@ -38,7 +38,7 @@ export function usePlayers() {
     try {
       setIsLoading(true)
       const { data, error } = await supabase
-        .from('players')
+        .from('jugadores')
         .select('*')
         .order('created_at', { ascending: false })
 
@@ -71,7 +71,7 @@ export function usePlayers() {
         {
           event: '*',
           schema: 'public',
-          table: 'players',
+          table: 'jugadores',
         },
         (payload) => {
           handleRealtimeUpdate(payload)
@@ -132,7 +132,7 @@ export function usePlayers() {
         }
 
         const { data, error } = await supabase
-          .from('players')
+          .from('jugadores')
           .insert([newPlayerInsert])
           .select()
           .single()
@@ -171,7 +171,7 @@ export function usePlayers() {
         }
 
         const { error } = await supabase
-          .from('players')
+          .from('jugadores')
           .update({
             full_name: player.fullName,
             document_id: player.documentNumber,
@@ -214,7 +214,7 @@ export function usePlayers() {
       try {
         const player = players.find(item => item.id === id)
 
-        const { error } = await supabase.from('players').delete().eq('id', id)
+        const { error } = await supabase.from('jugadores').delete().eq('id', id)
         if (error) throw error
 
         setPlayers(prev => prev.filter(player => player.id !== id))
@@ -237,12 +237,12 @@ export function usePlayers() {
   const clearAllPlayers = useCallback(async (): Promise<boolean> => {
     try {
       const { data, error: selectError } = await supabase
-        .from('players')
+        .from('jugadores')
         .select('photo_url')
 
       if (selectError) throw selectError
 
-      const { error } = await supabase.from('players').delete().neq('id', '')
+      const { error } = await supabase.from('jugadores').delete().neq('id', '')
       if (error) throw error
 
       setPlayers([])
