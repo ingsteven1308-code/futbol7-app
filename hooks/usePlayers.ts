@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Player, PlayerSubmitData, PlayerUpdateData } from '@/lib/types'
-import type { Database } from '@/lib/database.types'
 import { supabase } from '@/lib/supabase'
 import { uploadPlayerPhoto, deletePlayerPhoto } from '@/lib/supabaseStorage'
 import { useToast } from './useToast'
@@ -17,10 +16,10 @@ export function usePlayers() {
   const transformPlayer = (dbPlayer: any): Player => ({
     id: dbPlayer.id,
     fullName: dbPlayer.full_name,
-    documentNumber: dbPlayer.document_number,
+    documentNumber: dbPlayer.document_id,
     position: dbPlayer.position,
     team: dbPlayer.team,
-    photoUrl: dbPlayer.photo_url,
+    photoUrl: dbPlayer.photo_url ?? null,
     createdAt: dbPlayer.created_at,
   })
 
@@ -45,7 +44,7 @@ export function usePlayers() {
 
       if (error) throw error
 
-      const transformedPlayers = data.map(transformPlayer)
+      const transformedPlayers = (data ?? []).map(transformPlayer)
       setPlayers(transformedPlayers)
 
       // Configurar suscripción en tiempo real
@@ -115,6 +114,7 @@ export function usePlayers() {
     ): Promise<Player | null> => {
       try {
         const id = crypto.randomUUID()
+
         let photoUrl = playerData.photoUrl || null
 
         if (playerData.photoFile) {
@@ -124,7 +124,7 @@ export function usePlayers() {
         const newPlayerInsert = {
           id,
           full_name: playerData.fullName,
-          document_number: playerData.documentNumber,
+          document_id: playerData.documentNumber,
           position: playerData.position,
           team: playerData.team,
           photo_url: photoUrl,
@@ -163,17 +163,18 @@ export function usePlayers() {
         let photoUrl = player.photoUrl || null
 
         if (player.photoFile) {
-          if (photoUrl) {
-            await deletePlayerPhoto(photoUrl)
-          }
+          const previousPhotoUrl = photoUrl
           photoUrl = await uploadPlayerPhoto(player.photoFile, player.id)
+          if (previousPhotoUrl) {
+            await deletePlayerPhoto(previousPhotoUrl)
+          }
         }
 
         const { error } = await supabase
           .from('players')
           .update({
             full_name: player.fullName,
-            document_number: player.documentNumber,
+            document_id: player.documentNumber,
             position: player.position,
             team: player.team,
             photo_url: photoUrl,
@@ -181,6 +182,21 @@ export function usePlayers() {
           .eq('id', player.id)
 
         if (error) throw error
+
+        setPlayers(prev =>
+          prev.map((item) =>
+            item.id === player.id
+              ? {
+                  ...item,
+                  fullName: player.fullName,
+                  documentNumber: player.documentNumber,
+                  position: player.position,
+                  team: player.team,
+                  photoUrl,
+                }
+              : item,
+          ),
+        )
 
         return true
       } catch (error) {
@@ -197,13 +213,15 @@ export function usePlayers() {
     async (id: string): Promise<boolean> => {
       try {
         const player = players.find(item => item.id === id)
+
+        const { error } = await supabase.from('players').delete().eq('id', id)
+        if (error) throw error
+
+        setPlayers(prev => prev.filter(player => player.id !== id))
+
         if (player?.photoUrl) {
           await deletePlayerPhoto(player.photoUrl)
         }
-
-        const { error } = await supabase.from('players').delete().eq('id', id)
-
-        if (error) throw error
 
         return true
       } catch (error) {
@@ -218,24 +236,25 @@ export function usePlayers() {
   // Eliminar todos los jugadores (para reiniciar partido)
   const clearAllPlayers = useCallback(async (): Promise<boolean> => {
     try {
-      const { data: allPlayers, error: selectError } = await supabase
+      const { data, error: selectError } = await supabase
         .from('players')
         .select('photo_url')
 
       if (selectError) throw selectError
 
-      if (allPlayers?.length) {
+      const { error } = await supabase.from('players').delete().neq('id', '')
+      if (error) throw error
+
+      setPlayers([])
+
+      if (data?.length) {
         await Promise.all(
-          allPlayers
-            .map((row: any) => row.photo_url)
+          data
+            .map((player: any) => player.photo_url)
             .filter(Boolean)
             .map((photoUrl: string) => deletePlayerPhoto(photoUrl)),
         )
       }
-
-      const { error } = await supabase.from('players').delete().neq('id', '')
-
-      if (error) throw error
 
       return true
     } catch (error) {

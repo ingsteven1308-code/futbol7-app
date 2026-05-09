@@ -8,7 +8,7 @@ export interface Player {
   position: Position
   team: Team
   photoUrl: string | null
-  createdAt: number
+  createdAt: string
 }
 
 export interface PlayerSubmitData {
@@ -22,7 +22,7 @@ export interface PlayerSubmitData {
 
 export interface PlayerUpdateData extends PlayerSubmitData {
   id: string
-  createdAt: number
+  createdAt: string
 }
 
 export interface ToastItem {

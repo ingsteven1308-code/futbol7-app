@@ -5,35 +5,29 @@ export type Database = {
         Row: {
           id: string
           full_name: string
-          document_number: string
+          document_id: string
           position: 'Arquero' | 'Defensa' | 'Mediocampista' | 'Delantero'
           team: 'Blanco' | 'Negro'
           photo_url: string | null
           created_at: string
-          updated_at: string
-          deleted_at: string | null
         }
         Insert: {
           id?: string
           full_name: string
-          document_number: string
+          document_id: string
           position: 'Arquero' | 'Defensa' | 'Mediocampista' | 'Delantero'
           team: 'Blanco' | 'Negro'
           photo_url?: string | null
           created_at: string
-          updated_at?: string
-          deleted_at?: string | null
         }
         Update: {
           id?: string
           full_name?: string
-          document_number?: string
+          document_id?: string
           position?: 'Arquero' | 'Defensa' | 'Mediocampista' | 'Delantero'
           team?: 'Blanco' | 'Negro'
           photo_url?: string | null
           created_at?: string
-          updated_at?: string
-          deleted_at?: string | null
         }
         Relationships: []
       }
