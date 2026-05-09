@@ -1,70 +1,88 @@
 'use client'
 import { useState, useCallback } from 'react'
-import type { Player } from '@/lib/types'
+import type { Player, PlayerSubmitData, PlayerUpdateData } from '@/lib/types'
 import { usePlayers } from '@/hooks/usePlayers'
 import { useToast } from '@/hooks/useToast'
-import { buildWhatsAppUrl } from '@/lib/whatsapp'
+import { buildAdminWhatsAppUrl } from '@/lib/whatsapp'
 import { exportToExcel } from '@/lib/excel'
 import { PlayerForm } from './PlayerForm'
 import { TeamSection } from './TeamSection'
 import { ToastContainer } from './Toast'
+import { RestartMatchModal } from './RestartMatchModal'
 
 type ModalState =
   | { open: false }
   | { open: true; mode: 'edit'; player: Player }
 
 export function FootballApp() {
-  const { players, whiteTeam, blackTeam, addPlayer, updatePlayer, removePlayer, loaded } =
+  const { players, whiteTeam, blackTeam, addPlayer, updatePlayer, removePlayer, clearAllPlayers, loaded, isLoading } =
     usePlayers()
   const { toasts, toast, dismiss } = useToast()
   const [modal, setModal] = useState<ModalState>({ open: false })
   const [exporting, setExporting] = useState(false)
+  const [restartModalOpen, setRestartModalOpen] = useState(false)
   const [formKey, setFormKey] = useState(0)
 
   const handleAdd = useCallback(
-    (data: Omit<Player, 'id' | 'createdAt'>) => {
-      const player: Player = {
-        ...data,
-        id: crypto.randomUUID(),
-        createdAt: Date.now(),
+    async (data: PlayerSubmitData) => {
+      const newPlayer = await addPlayer(data)
+      if (newPlayer) {
+        toast(`✅ ${newPlayer.fullName} registrado en Equipo ${newPlayer.team}`, 'success')
+        setFormKey(k => k + 1)
       }
-      addPlayer(player)
-      toast(`✅ ${player.fullName} registrado en Equipo ${player.team}`, 'success')
-      setFormKey(k => k + 1) // reset form
-
-      const url = buildWhatsAppUrl(player)
-      window.open(url, '_blank', 'noopener,noreferrer')
     },
     [addPlayer, toast],
   )
+
+  const handleNotifyAdmin = useCallback(() => {
+    if (players.length === 0) {
+      toast('No hay jugadores registrados para notificar', 'error')
+      return
+    }
+
+    const url = buildAdminWhatsAppUrl(players)
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }, [players, toast])
 
   const handleEdit = useCallback((player: Player) => {
     setModal({ open: true, mode: 'edit', player })
   }, [])
 
   const handleUpdate = useCallback(
-    (data: Omit<Player, 'id' | 'createdAt'>) => {
+    async (data: PlayerSubmitData) => {
       if (!modal.open) return
-      const updated: Player = {
+      const updated: PlayerUpdateData = {
         ...data,
         id: (modal as { open: true; mode: 'edit'; player: Player }).player.id,
         createdAt: (modal as { open: true; mode: 'edit'; player: Player }).player.createdAt,
       }
-      updatePlayer(updated)
-      toast(`✏️ ${updated.fullName} actualizado`, 'info')
-      setModal({ open: false })
+      const success = await updatePlayer(updated)
+      if (success) {
+        toast(`✏️ ${updated.fullName} actualizado`, 'info')
+        setModal({ open: false })
+      }
     },
     [modal, updatePlayer, toast],
   )
 
   const handleDelete = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const player = players.find(p => p.id === id)
-      removePlayer(id)
-      toast(`🗑️ ${player?.fullName ?? 'Jugador'} eliminado`, 'error')
+      const success = await removePlayer(id)
+      if (success) {
+        toast(`🗑️ ${player?.fullName ?? 'Jugador'} eliminado`, 'error')
+      }
     },
     [players, removePlayer, toast],
   )
+
+  const handleRestart = useCallback(async () => {
+    const success = await clearAllPlayers()
+    if (success) {
+      setRestartModalOpen(false)
+      toast('🔄 Partido reiniciado correctamente', 'success')
+    }
+  }, [clearAllPlayers, toast])
 
   const handleExport = useCallback(async () => {
     if (players.length === 0) {
@@ -88,6 +106,12 @@ export function FootballApp() {
   return (
     <div className="min-h-screen bg-[#080808] text-white">
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
+      <RestartMatchModal
+        open={restartModalOpen}
+        onConfirm={handleRestart}
+        onCancel={() => setRestartModalOpen(false)}
+        playerCount={players.length}
+      />
 
       {/* Edit modal */}
       {modal.open && editingPlayer && (
@@ -150,19 +174,33 @@ export function FootballApp() {
           <PlayerForm key={formKey} onSubmit={handleAdd} />
         </section>
 
-        {/* Export + total bar */}
+        {/* Actions bar */}
         {loaded && players.length > 0 && (
-          <div className="flex items-center justify-between bg-gray-950/60 border border-gray-800/50 rounded-xl px-5 py-3">
-            <p className="text-sm text-gray-400">
+          <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 bg-gray-950/60 border border-gray-800/50 rounded-xl px-5 py-3">
+            <p className="text-sm text-gray-400 self-center">
               <span className="text-white font-bold">{players.length}</span> jugadores registrados
             </p>
-            <button
-              onClick={handleExport}
-              disabled={exporting}
-              className="flex items-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors"
-            >
-              {exporting ? '⏳ Generando...' : '📊 Descargar Registro'}
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full xl:w-auto">
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors"
+              >
+                {exporting ? '⏳ Generando...' : '📊 Exportar Excel'}
+              </button>
+              <button
+                onClick={handleNotifyAdmin}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-xl text-sm transition-colors"
+              >
+                📣 Notificar al Administrador
+              </button>
+              <button
+                onClick={() => setRestartModalOpen(true)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded-xl text-sm transition-colors"
+              >
+                🔄 Reiniciar Partido
+              </button>
+            </div>
           </div>
         )}
 
@@ -193,7 +231,7 @@ export function FootballApp() {
 
       {/* Footer */}
       <footer className="border-t border-gray-900 text-center py-6 text-gray-700 text-xs">
-        Fútbol 7 App · Hecho con ⚽ y Next.js
+        Fútbol 7 App · Hecho con ⚽ y Next.js + Supabase
       </footer>
     </div>
   )

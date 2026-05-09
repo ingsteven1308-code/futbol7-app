@@ -1,18 +1,26 @@
 import type { Player } from './types'
 
-// Reemplaza con el número del organizador (código país + número, sin + ni espacios)
-export const ORGANIZER_PHONE = '573136135417'
+// Obtener desde variables de entorno
+export const ORGANIZER_PHONE = process.env.NEXT_PUBLIC_ORGANIZER_PHONE || '573136135417'
 
-export function buildWhatsAppUrl(player: Player): string {
+export function buildAdminWhatsAppUrl(players: Player[]): string {
+  const total = players.length
+  const whiteTeam = players.filter(player => player.team === 'Blanco')
+  const blackTeam = players.filter(player => player.team === 'Negro')
+
   const lines = [
-    '⚽ *NUEVO JUGADOR REGISTRADO* ⚽',
+    '⚽ *RESUMEN DE ASISTENCIA - FÚTBOL 7* ⚽',
     '',
-    `👤 *Nombre:* ${player.fullName}`,
-    `🪪 *Documento:* ${player.documentNumber}`,
-    `🎽 *Posición:* ${player.position}`,
-    `🏳️ *Equipo:* ${player.team}`,
+    `👥 *Total de jugadores:* ${total}`,
+    `🏳️ *Equipo Blanco:* ${whiteTeam.length}`,
+    `🏴 *Equipo Negro:* ${blackTeam.length}`,
     '',
-    '_Registrado en Fútbol 7 App_',
+    '📝 *Jugadores registrados:*',
+    '',
+    ...players.map(player => `• ${player.fullName} (${player.team})`),
+    '',
+    '📅 Enviado desde la app de organización de partidos',
   ]
+
   return `https://wa.me/${ORGANIZER_PHONE}?text=${encodeURIComponent(lines.join('\n'))}`
 }

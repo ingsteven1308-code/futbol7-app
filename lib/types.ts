@@ -7,7 +7,21 @@ export interface Player {
   documentNumber: string
   position: Position
   team: Team
-  photo: string
+  photoUrl: string | null
+  createdAt: number
+}
+
+export interface PlayerSubmitData {
+  fullName: string
+  documentNumber: string
+  position: Position
+  team: Team
+  photoUrl: string | null
+  photoFile?: File | null
+}
+
+export interface PlayerUpdateData extends PlayerSubmitData {
+  id: string
   createdAt: number
 }
 

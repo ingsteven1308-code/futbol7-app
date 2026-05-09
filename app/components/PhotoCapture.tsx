@@ -2,8 +2,8 @@
 import { useRef, useCallback } from 'react'
 
 interface Props {
-  value: string
-  onChange: (base64: string) => void
+  value: string | null
+  onChange: (file: File | null, preview: string | null) => void
 }
 
 async function resizeImage(file: File, maxPx = 480): Promise<string> {
@@ -33,8 +33,8 @@ export function PhotoCapture({ value, onChange }: Props) {
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
       if (!file) return
-      const base64 = await resizeImage(file)
-      onChange(base64)
+      const preview = await resizeImage(file)
+      onChange(file, preview)
       e.target.value = ''
     },
     [onChange],
@@ -49,7 +49,7 @@ export function PhotoCapture({ value, onChange }: Props) {
           </div>
           <button
             type="button"
-            onClick={() => onChange('')}
+            onClick={() => onChange(null, null)}
             className="absolute inset-0 flex items-center justify-center bg-black/65 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-bold"
           >
             Cambiar

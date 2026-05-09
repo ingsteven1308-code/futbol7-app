@@ -70,9 +70,9 @@ export function PlayerCard({ player, onEdit, onDelete }: Props) {
               isWhite ? 'border-gray-300/60' : 'border-yellow-600/50'
             }`}
           >
-            {player.photo ? (
+            {player.photoUrl ? (
               <img
-                src={player.photo}
+                src={player.photoUrl}
                 alt={player.fullName}
                 className="w-full h-full object-cover"
               />

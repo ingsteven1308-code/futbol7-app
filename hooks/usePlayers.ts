@@ -1,31 +1,263 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
-import type { Player } from '@/lib/types'
-import { storage } from '@/lib/storage'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import type { Player, PlayerSubmitData, PlayerUpdateData } from '@/lib/types'
+import type { Database } from '@/lib/database.types'
+import { supabase } from '@/lib/supabase'
+import { uploadPlayerPhoto, deletePlayerPhoto } from '@/lib/supabaseStorage'
+import { useToast } from './useToast'
 
 export function usePlayers() {
   const [players, setPlayers] = useState<Player[]>([])
   const [loaded, setLoaded] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
+  const subscriptionRef = useRef<any>(null)
 
+  // Transformar datos de Supabase a formato local
+  const transformPlayer = (dbPlayer: any): Player => ({
+    id: dbPlayer.id,
+    fullName: dbPlayer.full_name,
+    documentNumber: dbPlayer.document_number,
+    position: dbPlayer.position,
+    team: dbPlayer.team,
+    photoUrl: dbPlayer.photo_url,
+    createdAt: dbPlayer.created_at,
+  })
+
+  // Cargar jugadores iniciales
   useEffect(() => {
-    setPlayers(storage.get())
-    setLoaded(true)
+    loadPlayers()
+    return () => {
+      // Cleanup subscription
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe()
+      }
+    }
   }, [])
 
-  const addPlayer = useCallback((player: Player) => {
-    setPlayers(storage.add(player))
-  }, [])
+  const loadPlayers = async () => {
+    try {
+      setIsLoading(true)
+      const { data, error } = await supabase
+        .from('players')
+        .select('*')
+        .order('created_at', { ascending: false })
 
-  const updatePlayer = useCallback((player: Player) => {
-    setPlayers(storage.update(player))
-  }, [])
+      if (error) throw error
 
-  const removePlayer = useCallback((id: string) => {
-    setPlayers(storage.remove(id))
-  }, [])
+      const transformedPlayers = data.map(transformPlayer)
+      setPlayers(transformedPlayers)
 
-  const whiteTeam = players.filter(p => p.team === 'Blanco')
-  const blackTeam = players.filter(p => p.team === 'Negro')
+      // Configurar suscripción en tiempo real
+      setupRealtimeSubscription()
+    } catch (error) {
+      console.error('Error loading players:', error)
+      toast('Error al cargar los jugadores', 'error')
+    } finally {
+      setIsLoading(false)
+      setLoaded(true)
+    }
+  }
 
-  return { players, whiteTeam, blackTeam, addPlayer, updatePlayer, removePlayer, loaded }
+  // Suscripción en tiempo real
+  const setupRealtimeSubscription = () => {
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe()
+    }
+
+    subscriptionRef.current = supabase
+      .channel('players-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'players',
+        },
+        (payload) => {
+          handleRealtimeUpdate(payload)
+        },
+      )
+      .subscribe()
+  }
+
+  // Manejar actualizaciones en tiempo real
+  const handleRealtimeUpdate = (payload: any) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload
+
+    setPlayers((prev) => {
+      switch (eventType) {
+        case 'INSERT': {
+          const transformed = transformPlayer(newRecord)
+          return prev.some((p) => p.id === transformed.id)
+            ? prev.map((p) => (p.id === transformed.id ? transformed : p))
+            : [transformed, ...prev]
+        }
+
+        case 'UPDATE':
+          return prev.map((p) =>
+            p.id === newRecord.id ? transformPlayer(newRecord) : p,
+          )
+
+        case 'DELETE':
+          return prev.filter((p) => p.id !== oldRecord.id)
+
+        default:
+          return prev
+      }
+    })
+  }
+
+  // Agregar jugador
+  const addPlayer = useCallback(
+    async (
+      playerData: PlayerSubmitData,
+    ): Promise<Player | null> => {
+      try {
+        const id = crypto.randomUUID()
+        let photoUrl = playerData.photoUrl || null
+
+        if (playerData.photoFile) {
+          photoUrl = await uploadPlayerPhoto(playerData.photoFile, id)
+        }
+
+        const newPlayerInsert = {
+          id,
+          full_name: playerData.fullName,
+          document_number: playerData.documentNumber,
+          position: playerData.position,
+          team: playerData.team,
+          photo_url: photoUrl,
+          created_at: new Date().toISOString(),
+        }
+
+        const { data, error } = await supabase
+          .from('players')
+          .insert([newPlayerInsert])
+          .select()
+          .single()
+
+        if (error) throw error
+
+        const newPlayer = transformPlayer(data)
+        setPlayers(prev =>
+          prev.some(player => player.id === newPlayer.id)
+            ? prev
+            : [newPlayer, ...prev],
+        )
+
+        return newPlayer
+      } catch (error) {
+        console.error('Error adding player:', error)
+        toast('Error al registrar el jugador', 'error')
+        return null
+      }
+    },
+    [toast],
+  )
+
+  // Actualizar jugador
+  const updatePlayer = useCallback(
+    async (player: PlayerUpdateData): Promise<boolean> => {
+      try {
+        let photoUrl = player.photoUrl || null
+
+        if (player.photoFile) {
+          if (photoUrl) {
+            await deletePlayerPhoto(photoUrl)
+          }
+          photoUrl = await uploadPlayerPhoto(player.photoFile, player.id)
+        }
+
+        const { error } = await supabase
+          .from('players')
+          .update({
+            full_name: player.fullName,
+            document_number: player.documentNumber,
+            position: player.position,
+            team: player.team,
+            photo_url: photoUrl,
+          })
+          .eq('id', player.id)
+
+        if (error) throw error
+
+        return true
+      } catch (error) {
+        console.error('Error updating player:', error)
+        toast('Error al actualizar el jugador', 'error')
+        return false
+      }
+    },
+    [toast],
+  )
+
+  // Eliminar jugador
+  const removePlayer = useCallback(
+    async (id: string): Promise<boolean> => {
+      try {
+        const player = players.find(item => item.id === id)
+        if (player?.photoUrl) {
+          await deletePlayerPhoto(player.photoUrl)
+        }
+
+        const { error } = await supabase.from('players').delete().eq('id', id)
+
+        if (error) throw error
+
+        return true
+      } catch (error) {
+        console.error('Error removing player:', error)
+        toast('Error al eliminar el jugador', 'error')
+        return false
+      }
+    },
+    [players, toast],
+  )
+
+  // Eliminar todos los jugadores (para reiniciar partido)
+  const clearAllPlayers = useCallback(async (): Promise<boolean> => {
+    try {
+      const { data: allPlayers, error: selectError } = await supabase
+        .from('players')
+        .select('photo_url')
+
+      if (selectError) throw selectError
+
+      if (allPlayers?.length) {
+        await Promise.all(
+          allPlayers
+            .map((row: any) => row.photo_url)
+            .filter(Boolean)
+            .map((photoUrl: string) => deletePlayerPhoto(photoUrl)),
+        )
+      }
+
+      const { error } = await supabase.from('players').delete().neq('id', '')
+
+      if (error) throw error
+
+      return true
+    } catch (error) {
+      console.error('Error clearing all players:', error)
+      toast('Error al limpiar los jugadores', 'error')
+      return false
+    }
+  }, [toast])
+
+  // Filtrar equipos
+  const whiteTeam = players.filter((p) => p.team === 'Blanco')
+  const blackTeam = players.filter((p) => p.team === 'Negro')
+
+  return {
+    players,
+    whiteTeam,
+    blackTeam,
+    addPlayer,
+    updatePlayer,
+    removePlayer,
+    clearAllPlayers,
+    loaded,
+    isLoading,
+  }
 }

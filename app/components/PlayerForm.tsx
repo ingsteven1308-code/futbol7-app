@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import type { Player, Position, Team } from '@/lib/types'
+import type { Player, PlayerSubmitData, Position, Team } from '@/lib/types'
 import { PhotoCapture } from './PhotoCapture'
 
 const POSITIONS: Position[] = ['Arquero', 'Defensa', 'Mediocampista', 'Delantero']
@@ -18,7 +18,8 @@ interface FormData {
   documentNumber: string
   position: Position | ''
   team: Team | ''
-  photo: string
+  photoUrl: string | null
+  photoFile: File | null
 }
 
 interface Errors {
@@ -30,7 +31,7 @@ interface Errors {
 
 interface Props {
   initial?: Player
-  onSubmit: (data: Omit<Player, 'id' | 'createdAt'>) => void
+  onSubmit: (data: PlayerSubmitData) => void
   onCancel?: () => void
   isEditing?: boolean
 }
@@ -41,7 +42,8 @@ export function PlayerForm({ initial, onSubmit, onCancel, isEditing }: Props) {
     documentNumber: initial?.documentNumber ?? '',
     position: initial?.position ?? '',
     team: initial?.team ?? '',
-    photo: initial?.photo ?? '',
+    photoUrl: initial?.photoUrl ?? null,
+    photoFile: null,
   })
   const [errors, setErrors] = useState<Errors>({})
   const [submitting, setSubmitting] = useState(false)
@@ -73,7 +75,8 @@ export function PlayerForm({ initial, onSubmit, onCancel, isEditing }: Props) {
       documentNumber: form.documentNumber.trim(),
       position: form.position as Position,
       team: form.team as Team,
-      photo: form.photo,
+      photoUrl: form.photoUrl,
+      photoFile: form.photoFile,
     })
     setSubmitting(false)
   }
@@ -82,7 +85,13 @@ export function PlayerForm({ initial, onSubmit, onCancel, isEditing }: Props) {
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       {/* Photo */}
       <div className="flex justify-center pb-1">
-        <PhotoCapture value={form.photo} onChange={v => set('photo', v)} />
+        <PhotoCapture
+          value={form.photoUrl}
+          onChange={(file, preview) => {
+            set('photoUrl', preview)
+            set('photoFile', file)
+          }}
+        />
       </div>
 
       {/* Name */}
@@ -199,7 +208,7 @@ export function PlayerForm({ initial, onSubmit, onCancel, isEditing }: Props) {
           disabled={submitting}
           className="flex-1 py-3 rounded-xl bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-black text-sm hover:from-yellow-500 hover:to-yellow-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_24px_rgba(255,215,0,0.3)] hover:shadow-[0_0_32px_rgba(255,215,0,0.5)]"
         >
-          {submitting ? '⏳ Guardando...' : isEditing ? '✏️ Actualizar Jugador' : '✅ Confirmar Jugador'}
+          {submitting ? '⏳ Guardando...' : isEditing ? '✏️ Actualizar Jugador' : '✅ Agregar Jugador'}
         </button>
       </div>
     </form>
