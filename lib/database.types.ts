@@ -11,6 +11,7 @@ export type Database = {
           foto: string | null
           photo_url: string | null
           created_at: string
+          match_id: string
         }
         Insert: {
           id?: string
@@ -21,6 +22,7 @@ export type Database = {
           foto?: string | null
           photo_url?: string | null
           created_at: string
+          match_id: string
         }
         Update: {
           id?: string
@@ -30,6 +32,55 @@ export type Database = {
           equipo?: 'Blanco' | 'Negro'
           foto?: string | null
           photo_url?: string | null
+          created_at?: string
+          match_id?: string
+        }
+        Relationships: []
+      }
+      matches: {
+        Row: {
+          id: string
+          nombre: string
+          created_by: string
+          access_code: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          nombre: string
+          created_by: string
+          access_code: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          nombre?: string
+          created_by?: string
+          access_code?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      match_members: {
+        Row: {
+          id: string
+          match_id: string
+          user_id: string
+          role: 'organizer' | 'player'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          match_id: string
+          user_id: string
+          role: 'organizer' | 'player'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          match_id?: string
+          user_id?: string
+          role?: 'organizer' | 'player'
           created_at?: string
         }
         Relationships: []

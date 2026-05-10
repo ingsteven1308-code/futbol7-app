@@ -1,5 +1,6 @@
 export type Position = 'Arquero' | 'Defensa' | 'Mediocampista' | 'Delantero'
 export type Team = 'Blanco' | 'Negro'
+export type Role = 'organizer' | 'player'
 
 export interface Player {
   id: string

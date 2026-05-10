@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { uploadPlayerPhoto, deletePlayerPhoto } from '@/lib/supabaseStorage'
 import { useToast } from './useToast'
 
-export function usePlayers() {
+export function usePlayers(matchId: string | null) {
   const [players, setPlayers] = useState<Player[]>([])
   const [loaded, setLoaded] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -25,21 +25,31 @@ export function usePlayers() {
 
   // Cargar jugadores iniciales
   useEffect(() => {
+    if (!matchId) {
+      setPlayers([])
+      setLoaded(false)
+      return
+    }
+
     loadPlayers()
     return () => {
-      // Cleanup subscription
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe()
       }
     }
-  }, [])
+  }, [matchId])
 
   const loadPlayers = async () => {
+    if (!matchId) {
+      return
+    }
+
     try {
       setIsLoading(true)
       const { data, error } = await supabase
         .from('jugadores')
         .select('*')
+        .eq('match_id', matchId)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -47,7 +57,6 @@ export function usePlayers() {
       const transformedPlayers = (data ?? []).map(transformPlayer)
       setPlayers(transformedPlayers)
 
-      // Configurar suscripción en tiempo real
       setupRealtimeSubscription()
     } catch (error) {
       console.error('Error loading players:', error)
@@ -60,18 +69,23 @@ export function usePlayers() {
 
   // Suscripción en tiempo real
   const setupRealtimeSubscription = () => {
+    if (!matchId) {
+      return
+    }
+
     if (subscriptionRef.current) {
       subscriptionRef.current.unsubscribe()
     }
 
     subscriptionRef.current = supabase
-      .channel('players-channel')
+      .channel(`players-channel-${matchId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'jugadores',
+          filter: `match_id=eq.${matchId}`,
         },
         (payload) => {
           handleRealtimeUpdate(payload)
@@ -112,6 +126,11 @@ export function usePlayers() {
     async (
       playerData: PlayerSubmitData,
     ): Promise<Player | null> => {
+      if (!matchId) {
+        toast('No se ha seleccionado un partido', 'error')
+        return null
+      }
+
       try {
         const id = crypto.randomUUID()
 
@@ -129,6 +148,7 @@ export function usePlayers() {
           equipo: playerData.team,
           photo_url: photoUrl,
           created_at: new Date().toISOString(),
+          match_id: matchId,
         }
 
         const { data, error } = await supabase
@@ -153,7 +173,7 @@ export function usePlayers() {
         return null
       }
     },
-    [toast],
+    [matchId, toast],
   )
 
   // Actualizar jugador
@@ -180,6 +200,7 @@ export function usePlayers() {
             photo_url: photoUrl,
           })
           .eq('id', player.id)
+          .eq('match_id', matchId)
 
         if (error) throw error
 
@@ -205,16 +226,21 @@ export function usePlayers() {
         return false
       }
     },
-    [toast],
+    [matchId, toast],
   )
 
   // Eliminar jugador
   const removePlayer = useCallback(
     async (id: string): Promise<boolean> => {
+      if (!matchId) {
+        toast('No se ha seleccionado un partido', 'error')
+        return false
+      }
+
       try {
         const player = players.find(item => item.id === id)
 
-        const { error } = await supabase.from('jugadores').delete().eq('id', id)
+        const { error } = await supabase.from('jugadores').delete().eq('id', id).eq('match_id', matchId)
         if (error) throw error
 
         setPlayers(prev => prev.filter(player => player.id !== id))
@@ -235,17 +261,20 @@ export function usePlayers() {
 
   // Eliminar todos los jugadores (para reiniciar partido)
   const clearAllPlayers = useCallback(async (): Promise<boolean> => {
+    if (!matchId) {
+      toast('No se ha seleccionado un partido', 'error')
+      return false
+    }
+
     try {
       const { data, error: selectError } = await supabase
         .from('jugadores')
         .select('photo_url')
+        .eq('match_id', matchId)
 
       if (selectError) throw selectError
 
-      const { error } = await supabase
-  .from("jugadores")
-  .delete()
-  .not("id", "is", null)
+      const { error } = await supabase.from('jugadores').delete().eq('match_id', matchId)
       if (error) throw error
 
       setPlayers([])
