@@ -141,7 +141,7 @@ export function FootballApp() {
         <div className="relative max-w-6xl mx-auto px-4 py-10 text-center">
           <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-4 py-1.5 mb-4">
             <span className="text-yellow-400 text-xs font-bold tracking-widest uppercase">
-              Organiza tu partidooooooo
+              Organiza tu partido
             </span>
           </div>
           <h1 className="text-5xl sm:text-6xl font-black uppercase tracking-tight">

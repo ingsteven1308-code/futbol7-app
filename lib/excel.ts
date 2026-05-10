@@ -7,8 +7,6 @@ export async function exportToExcel(players: Player[]): Promise<void> {
     '#': i + 1,
     Nombre: p.fullName,
     Documento: p.documentNumber,
-    Posición: p.position,
-    Equipo: p.team,
   }))
 
   const ws = XLSX.utils.json_to_sheet(rows)
@@ -16,5 +14,5 @@ export async function exportToExcel(players: Player[]): Promise<void> {
 
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Jugadores')
-  XLSX.writeFile(wb, 'futbol7_registro.xlsx')
+  XLSX.writeFile(wb, 'futbol_registro.xlsx')
 }
