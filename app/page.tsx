@@ -102,7 +102,7 @@ export default function Page() {
         <header className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-yellow-400 font-black mb-2">Acceso por código</p>
-            <h1 className="text-4xl font-black">Crear partido y unirse sin login</h1>
+            <h1 className="text-4xl font-black">Crear partido</h1>
             <p className="mt-3 text-gray-400 max-w-xl">
               Crea un partido con código de acceso, luego comparte el código para que otros se unan.
             </p>
