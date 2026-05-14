@@ -29,7 +29,7 @@ export function usePlayers(matchId?: string, team1Name?: string, team2Name?: str
     return () => {
       // Cleanup subscription
       if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe()
+        subscriptionRef.current.unsubscribe().catch(() => {})
       }
     }
   }, [matchId])
@@ -49,8 +49,10 @@ export function usePlayers(matchId?: string, team1Name?: string, team2Name?: str
       const transformedPlayers = (data ?? []).map(transformPlayer)
       setPlayers(transformedPlayers)
 
-      // Configurar suscripción en tiempo real
-      setupRealtimeSubscription()
+      // Configurar suscripción en tiempo real solo si hay matchId
+      if (matchId) {
+        setupRealtimeSubscription(matchId)
+      }
     } catch (error) {
       console.error('Error loading players:', error)
       toast('Error al cargar los jugadores', 'error')
@@ -61,52 +63,78 @@ export function usePlayers(matchId?: string, team1Name?: string, team2Name?: str
   }
 
   // Suscripción en tiempo real
-  const setupRealtimeSubscription = () => {
-    if (subscriptionRef.current) {
-      subscriptionRef.current.unsubscribe()
-    }
+  const setupRealtimeSubscription = (id: string) => {
+    try {
+      // Limpiar suscripción anterior
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe().catch(() => {})
+        subscriptionRef.current = null
+      }
 
-    subscriptionRef.current = supabase
-      .channel('players-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'jugadores',
-        },
-        (payload) => {
-          handleRealtimeUpdate(payload)
-        },
-      )
-      .subscribe()
+      // Crear canal con nombre único basado en matchId
+      const channelName = `players-${id}`
+      
+      subscriptionRef.current = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'jugadores',
+            filter: `match_id=eq.${id}`,
+          },
+          (payload) => {
+            handleRealtimeUpdate(payload)
+          },
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log(`Subscribed to ${channelName}`)
+          } else if (status === 'CLOSED') {
+            console.log(`Closed subscription to ${channelName}`)
+          }
+        })
+    } catch (error) {
+      console.error('Error setting up realtime subscription:', error)
+    }
   }
 
   // Manejar actualizaciones en tiempo real
   const handleRealtimeUpdate = (payload: any) => {
-    const { eventType, new: newRecord, old: oldRecord } = payload
+    try {
+      const { eventType, new: newRecord, old: oldRecord } = payload
 
-    setPlayers((prev) => {
-      switch (eventType) {
-        case 'INSERT': {
-          const transformed = transformPlayer(newRecord)
-          return prev.some((p) => p.id === transformed.id)
-            ? prev.map((p) => (p.id === transformed.id ? transformed : p))
-            : [transformed, ...prev]
+      if (!eventType) return
+
+      setPlayers((prev) => {
+        switch (eventType) {
+          case 'INSERT': {
+            const transformed = transformPlayer(newRecord)
+            return prev.some((p) => p.id === transformed.id)
+              ? prev.map((p) => (p.id === transformed.id ? transformed : p))
+              : [transformed, ...prev]
+          }
+
+          case 'UPDATE': {
+            if (!newRecord?.id) return prev
+            return prev.map((p) =>
+              p.id === newRecord.id ? transformPlayer(newRecord) : p,
+            )
+          }
+
+          case 'DELETE': {
+            if (!oldRecord?.id) return prev
+            return prev.filter((p) => p.id !== oldRecord.id)
+          }
+
+          default:
+            return prev
         }
-
-        case 'UPDATE':
-          return prev.map((p) =>
-            p.id === newRecord.id ? transformPlayer(newRecord) : p,
-          )
-
-        case 'DELETE':
-          return prev.filter((p) => p.id !== oldRecord.id)
-
-        default:
-          return prev
-      }
-    })
+      })
+    } catch (error) {
+      console.error('Error handling realtime update:', error)
+    }
   }
 
   // Agregar jugador

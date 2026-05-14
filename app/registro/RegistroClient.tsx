@@ -117,6 +117,11 @@ export default function RegistroClient() {
   }, [])
 
   const exportToExcel = useCallback(() => {
+    if (!match) {
+      alert('Partido no cargado')
+      return
+    }
+
     if (players.length === 0) {
       alert('No hay jugadores registrados aún')
       return
