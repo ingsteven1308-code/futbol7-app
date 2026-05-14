@@ -4,7 +4,6 @@ import type { Player, PlayerSubmitData, Position, Team } from '@/lib/types'
 import { PhotoCapture } from './PhotoCapture'
 
 const POSITIONS: Position[] = ['Arquero', 'Defensa', 'Mediocampista', 'Delantero']
-const TEAMS: Team[] = ['Blanco', 'Negro']
 
 const POSITION_ICONS: Record<Position, string> = {
   Arquero: '🧤',
@@ -34,14 +33,16 @@ interface Props {
   onSubmit: (data: PlayerSubmitData) => void
   onCancel?: () => void
   isEditing?: boolean
+  team1Name?: string
+  team2Name?: string
 }
 
-export function PlayerForm({ initial, onSubmit, onCancel, isEditing }: Props) {
+export function PlayerForm({ initial, onSubmit, onCancel, isEditing, team1Name, team2Name }: Props) {
   const [form, setForm] = useState<FormData>({
     fullName: initial?.fullName ?? '',
     documentNumber: initial?.documentNumber ?? '',
     position: initial?.position ?? '',
-    team: initial?.team ?? '',
+    team: initial?.team ?? team1Name ?? 'Equipo 1',
     photoUrl: initial?.photoUrl ?? null,
     photoFile: null,
   })
@@ -168,25 +169,25 @@ export function PlayerForm({ initial, onSubmit, onCancel, isEditing }: Props) {
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={() => set('team', 'Blanco')}
+            onClick={() => set('team', team1Name ?? 'Equipo 1')}
             className={`py-3 rounded-xl border-2 font-black text-sm transition-all ${
-              form.team === 'Blanco'
+              form.team === (team1Name ?? 'Equipo 1')
                 ? 'border-white bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.25)]'
                 : 'border-gray-700 text-gray-500 hover:border-gray-500'
             }`}
           >
-            🏳️ Blanco
+            🏳️ {team1Name ?? 'Equipo 1'}
           </button>
           <button
             type="button"
-            onClick={() => set('team', 'Negro')}
+            onClick={() => set('team', team2Name ?? 'Equipo 2')}
             className={`py-3 rounded-xl border-2 font-black text-sm transition-all ${
-              form.team === 'Negro'
+              form.team === (team2Name ?? 'Equipo 2')
                 ? 'border-yellow-500 bg-yellow-500/10 text-yellow-400 shadow-[0_0_20px_rgba(255,215,0,0.2)]'
                 : 'border-gray-700 text-gray-500 hover:border-gray-500'
             }`}
           >
-            🏴 Negro
+            🏴 {team2Name ?? 'Equipo 2'}
           </button>
         </div>
         {errors.team && <p className="text-red-400 text-xs mt-1">{errors.team}</p>}

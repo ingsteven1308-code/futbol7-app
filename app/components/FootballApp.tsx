@@ -14,9 +14,19 @@ type ModalState =
   | { open: false }
   | { open: true; mode: 'edit'; player: Player }
 
-export function FootballApp() {
+interface FootballAppProps {
+  matchId?: string
+  team1Name?: string
+  team2Name?: string
+}
+
+export function FootballApp({
+  matchId,
+  team1Name = 'Equipo 1',
+  team2Name = 'Equipo 2',
+}: FootballAppProps) {
   const { players, whiteTeam, blackTeam, addPlayer, updatePlayer, removePlayer, clearAllPlayers, loaded, isLoading } =
-    usePlayers()
+    usePlayers(matchId, team1Name, team2Name)
   const { toasts, toast, dismiss } = useToast()
   const [modal, setModal] = useState<ModalState>({ open: false })
   const [exporting, setExporting] = useState(false)
@@ -155,8 +165,8 @@ export function FootballApp() {
           {loaded && (
             <div className="flex justify-center gap-6 mt-6">
               <Stat label="Total" value={players.length} color="text-white" />
-              <Stat label="Blanco" value={whiteTeam.length} color="text-gray-300" />
-              <Stat label="Negro" value={blackTeam.length} color="text-yellow-400" />
+              <Stat label={team1Name} value={whiteTeam.length} color="text-gray-300" />
+              <Stat label={team2Name} value={blackTeam.length} color="text-yellow-400" />
             </div>
           )}
         </div>
@@ -205,13 +215,15 @@ export function FootballApp() {
         {loaded && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <TeamSection
-              team="Blanco"
+              teamKey={1}
+              teamName={team1Name}
               players={whiteTeam}
               onEdit={handleEdit}
               onDelete={handleDelete}
             />
             <TeamSection
-              team="Negro"
+              teamKey={2}
+              teamName={team2Name}
               players={blackTeam}
               onEdit={handleEdit}
               onDelete={handleDelete}

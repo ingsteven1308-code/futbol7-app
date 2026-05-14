@@ -19,10 +19,12 @@ interface Props {
   player: Player
   onEdit: (player: Player) => void
   onDelete: (id: string) => void
+  teamName?: string
+  isPrimaryTeam?: boolean
 }
 
-export function PlayerCard({ player, onEdit, onDelete }: Props) {
-  const isWhite = player.team === 'Blanco'
+export function PlayerCard({ player, onEdit, onDelete, teamName, isPrimaryTeam }: Props) {
+  const isWhite = isPrimaryTeam ?? false
   const abbr = ABBR[player.position]
   const rating = RATING[player.position]
 
@@ -99,7 +101,9 @@ export function PlayerCard({ player, onEdit, onDelete }: Props) {
               isWhite ? 'text-gray-400' : 'text-yellow-600'
             }`}
           >
-            {isWhite ? '🏳️ EQUIPO BLANCO' : '🏴 EQUIPO NEGRO'}
+            {isWhite
+              ? `🏳️ EQUIPO ${teamName ?? player.team}`
+              : `🏴 EQUIPO ${teamName ?? player.team}`}
           </div>
           <div
             className={`font-black text-[11px] uppercase leading-tight truncate ${

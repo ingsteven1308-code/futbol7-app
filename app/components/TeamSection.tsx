@@ -1,16 +1,17 @@
 'use client'
-import type { Player, Team } from '@/lib/types'
+import type { Player } from '@/lib/types'
 import { PlayerCard } from './PlayerCard'
 
 interface Props {
-  team: Team
+  teamKey: 1 | 2
+  teamName: string
   players: Player[]
   onEdit: (player: Player) => void
   onDelete: (id: string) => void
 }
 
-export function TeamSection({ team, players, onEdit, onDelete }: Props) {
-  const isWhite = team === 'Blanco'
+export function TeamSection({ teamKey, teamName, players, onEdit, onDelete }: Props) {
+  const isWhite = teamKey === 1
 
   return (
     <div
@@ -30,7 +31,7 @@ export function TeamSection({ team, players, onEdit, onDelete }: Props) {
                 isWhite ? 'text-white' : 'text-yellow-400'
               }`}
             >
-              Equipo {team}
+              Equipo {teamName}
             </h2>
             <p className="text-xs text-gray-500">
               {players.length} jugador{players.length !== 1 ? 'es' : ''}
@@ -56,7 +57,14 @@ export function TeamSection({ team, players, onEdit, onDelete }: Props) {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 justify-items-center">
           {players.map(player => (
-            <PlayerCard key={player.id} player={player} onEdit={onEdit} onDelete={onDelete} />
+            <PlayerCard
+              key={player.id}
+              player={player}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              teamName={teamName}
+              isPrimaryTeam={isWhite}
+            />
           ))}
         </div>
       )}

@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { uploadPlayerPhoto, deletePlayerPhoto } from '@/lib/supabaseStorage'
 import { useToast } from './useToast'
 
-export function usePlayers() {
+export function usePlayers(matchId?: string, team1Name?: string, team2Name?: string) {
   const [players, setPlayers] = useState<Player[]>([])
   const [loaded, setLoaded] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -32,15 +32,17 @@ export function usePlayers() {
         subscriptionRef.current.unsubscribe()
       }
     }
-  }, [])
+  }, [matchId])
 
   const loadPlayers = async () => {
     try {
       setIsLoading(true)
-      const { data, error } = await supabase
-        .from('jugadores')
-        .select('*')
-        .order('created_at', { ascending: false })
+      let query = supabase.from('jugadores').select('*').order('created_at', { ascending: false })
+      if (matchId) {
+        query = query.eq('match_id', matchId)
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
 
@@ -113,6 +115,11 @@ export function usePlayers() {
       playerData: PlayerSubmitData,
     ): Promise<Player | null> => {
       try {
+        if (!matchId) {
+          toast('No se ha seleccionado un partido', 'error')
+          return null
+        }
+
         const id = crypto.randomUUID()
 
         let photoUrl = playerData.photoUrl || null
@@ -129,17 +136,23 @@ export function usePlayers() {
           equipo: playerData.team,
           photo_url: photoUrl,
           created_at: new Date().toISOString(),
+          match_id: matchId,
         }
 
         const { data, error } = await supabase
           .from('jugadores')
           .insert([newPlayerInsert])
           .select()
-          .single()
+          .limit(1)
 
         if (error) throw error
 
-        const newPlayer = transformPlayer(data)
+        const inserted = Array.isArray(data) ? data[0] : data
+        if (!inserted) {
+          throw new Error('No se pudo guardar el jugador')
+        }
+
+        const newPlayer = transformPlayer(inserted)
         setPlayers(prev =>
           prev.some(player => player.id === newPlayer.id)
             ? prev
@@ -153,7 +166,7 @@ export function usePlayers() {
         return null
       }
     },
-    [toast],
+    [matchId, toast],
   )
 
   // Actualizar jugador
@@ -267,9 +280,13 @@ export function usePlayers() {
     }
   }, [toast])
 
-  // Filtrar equipos
-  const whiteTeam = players.filter((p) => p.team === 'Blanco')
-  const blackTeam = players.filter((p) => p.team === 'Negro')
+  // Filtrar equipos por los nombres dinámicos del partido
+  const whiteTeam = players.filter(
+    (p) => p.team === (team1Name ?? 'Equipo 1') || p.team === 'Blanco',
+  )
+  const blackTeam = players.filter(
+    (p) => p.team === (team2Name ?? 'Equipo 2') || p.team === 'Negro',
+  )
 
   return {
     players,

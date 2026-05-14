@@ -5,15 +5,18 @@ export const ORGANIZER_PHONE = process.env.NEXT_PUBLIC_ORGANIZER_PHONE || '57313
 
 export function buildAdminWhatsAppUrl(players: Player[]): string {
   const total = players.length
-  const whiteTeam = players.filter(player => player.team === 'Blanco')
-  const blackTeam = players.filter(player => player.team === 'Negro')
+  const teamCounts = players.reduce<Record<string, number>>((acc, player) => {
+    acc[player.team] = (acc[player.team] ?? 0) + 1
+    return acc
+  }, {})
 
   const lines = [
     '⚽ RESUMEN DE ASISTENCIA AL PARTIDO ⚽',
     '',
     `👥 *Total de jugadores:* ${total}`,
-    `🏳️ *Equipo Blanco:* ${whiteTeam.length}`,
-    `🏴 *Equipo Negro:* ${blackTeam.length}`,
+    ...Object.entries(teamCounts).map(
+      ([team, count]) => `• *${team}:* ${count}`,
+    ),
     '',
     '📝 *Jugadores registrados:*',
     '',
